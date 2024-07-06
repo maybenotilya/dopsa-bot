@@ -4,8 +4,10 @@ from aiogram import F, Router, types
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from consts import commands, divisions_aliases
+from db.models import User
 from timetable_api import students_api
 
 
@@ -152,7 +154,9 @@ async def choosing_year(callback: types.CallbackQuery, state: FSMContext):
 
 
 @router.callback_query(Register.choosing_group)
-async def choosing_group(callback: types.CallbackQuery, state: FSMContext):
+async def choosing_group(
+    callback: types.CallbackQuery, state: FSMContext, session: AsyncSession
+):
     data = await state.get_data()
     try:
         group_id = students_api.get_group_id(data["groups"], callback.data)
@@ -166,5 +170,9 @@ async def choosing_group(callback: types.CallbackQuery, state: FSMContext):
     await callback.message.answer(
         f"Номер вашей группы: {group_id}\nВы успешно завершили регистрацию."
     )
+
+    await session.merge(User(telegram_id=callback.from_user.id, group_id=group_id))
+    await session.commit()
+
     await callback.message.delete()
     await state.clear()
