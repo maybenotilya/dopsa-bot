@@ -4,10 +4,10 @@ from aiogram import F, Router, types
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from consts import commands, divisions_aliases
+from consts import commands, divisions_aliases, Messages
 from db.models import User
+from db.manager import DatabaseManager
 from timetable_api import students_api
 
 
@@ -23,7 +23,7 @@ router = Router()
 
 
 @router.message(StateFilter(None), Command(commands["exit"]))
-async def exit(message: types.Message, state: FSMContext):
+async def exit(message: types.Message):
     await message.answer("Вы не регистрируетесь, отменять нечего.")
 
 
@@ -46,8 +46,9 @@ async def register(message: types.Message, state: FSMContext):
 
 
 @router.callback_query(Register.choosing_division)
-async def choosing_devision(callback: types.CallbackQuery, state: FSMContext):
+async def choosing_division(callback: types.CallbackQuery, state: FSMContext):
     try:
+        await callback.message.edit_text(Messages.loading_message)
         levels = students_api.get_study_levels(callback.data)
     except Exception as e:
         logging.error(e)
@@ -73,6 +74,7 @@ async def choosing_devision(callback: types.CallbackQuery, state: FSMContext):
 async def choosing_level(callback: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     try:
+        await callback.message.edit_text(Messages.loading_message)
         study_programs = students_api.get_study_level_programs(
             data["alias"], data["levels"][int(callback.data)]
         )
@@ -100,6 +102,7 @@ async def choosing_level(callback: types.CallbackQuery, state: FSMContext):
 async def choosing_program(callback: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     try:
+        await callback.message.edit_text(Messages.loading_message)
         admission_years = students_api.get_admission_years(
             data["study_programs"], data["study_programs"][int(callback.data)].name
         )
@@ -125,6 +128,7 @@ async def choosing_program(callback: types.CallbackQuery, state: FSMContext):
 async def choosing_year(callback: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     try:
+        await callback.message.edit_text(Messages.loading_message)
         year_id = students_api.get_admission_year_id(
             data["admission_years"],
             data["admission_years"][int(callback.data)].year_name,
@@ -155,10 +159,11 @@ async def choosing_year(callback: types.CallbackQuery, state: FSMContext):
 
 @router.callback_query(Register.choosing_group)
 async def choosing_group(
-    callback: types.CallbackQuery, state: FSMContext, session: AsyncSession
+    callback: types.CallbackQuery, state: FSMContext, db_manager: DatabaseManager
 ):
     data = await state.get_data()
     try:
+        await callback.message.edit_text(Messages.loading_message)
         group_id = students_api.get_group_id(data["groups"], callback.data)
     except Exception as e:
         logging.error(e)
@@ -171,8 +176,7 @@ async def choosing_group(
         f"Номер вашей группы: {group_id}\nВы успешно завершили регистрацию."
     )
 
-    await session.merge(User(telegram_id=callback.from_user.id, group_id=group_id))
-    await session.commit()
+    await db_manager.upsert_user(callback.message.from_user.id, group_id)
 
     await callback.message.delete()
     await state.clear()

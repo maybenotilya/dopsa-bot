@@ -25,7 +25,7 @@ async def main():
     bot = Bot(token=os.environ["DOPSABOT_API_TOKEN"])
 
     dp = Dispatcher()
-    dp.update.middleware(DbSessionMiddleware(session_pool=sessionmaker))
+    dp.update.middleware(DbSessionMiddleware(session=sessionmaker))
     dp.include_routers(start.router, register.router)
     await dp.start_polling(bot)
 
