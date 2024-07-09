@@ -1,12 +1,11 @@
 import logging
 
-from aiogram import F, Router, types
+from aiogram import Router, types
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 
 from consts import commands, divisions_aliases, Messages
-from db.models import User
 from db.manager import DatabaseManager
 from timetable_api import students_api
 
@@ -164,7 +163,7 @@ async def choosing_group(
     data = await state.get_data()
     try:
         await callback.message.edit_text(Messages.loading_message)
-        group_id = students_api.get_group_id(data["groups"], callback.data)
+        group_id = int(students_api.get_group_id(data["groups"], callback.data))
     except Exception as e:
         logging.error(e)
         await callback.message.answer(
@@ -176,7 +175,8 @@ async def choosing_group(
         f"Номер вашей группы: {group_id}\nВы успешно завершили регистрацию."
     )
 
-    await db_manager.upsert_user(callback.message.from_user.id, group_id)
+    await db_manager.insert_group(group_id, callback.data)
+    await db_manager.upsert_user(callback.from_user.id, group_id)
 
     await callback.message.delete()
     await state.clear()
