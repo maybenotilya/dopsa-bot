@@ -175,8 +175,7 @@ async def choosing_group(
         f"Номер вашей группы: {group_id}\nВы успешно завершили регистрацию."
     )
 
-    await db_manager.insert_group(group_id, callback.data)
-    await db_manager.upsert_user(callback.from_user.id, group_id)
+    await db_manager.upsert_user(callback.from_user.id, group_id, callback.data)
 
     await callback.message.delete()
     await state.clear()
