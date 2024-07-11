@@ -1,8 +1,11 @@
+from datetime import datetime
+
 import spbu
 from spbu.types import SDPLProgramCombination, PGGroup, SDPLAdmissionYear
 from typing import List
 
 from consts import divisions_aliases
+from .views import ExamView, map_exam
 
 
 def get_study_division_alias(division_name: str) -> str:
@@ -56,7 +59,16 @@ def get_group_id(groups: List[PGGroup], group_name: str) -> str:
     raise Exception("Failed to find student group")
 
 
-def get_group_exams(group_id: str, from_date: str = None, to_date: str = None):
-    return spbu.get_group_events(
+def get_group_exams(
+    group_id: str, from_date: datetime = None, to_date: datetime = None
+) -> List[ExamView]:
+    events = spbu.get_group_events(
         group_id, from_date, to_date, lessons_type=spbu.consts.LessonsTypes.ATTESTATION
     )
+
+    exams = []
+    for day in events.days:
+        for exam in day.day_study_events:
+            exams.append(map_exam(exam))
+
+    return exams
