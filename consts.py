@@ -1,4 +1,12 @@
-commands = {"start": "start", "help": "help", "register": "register", "exit": "exit"}
+class BotCommands:
+    start = "start"
+    help = "help"
+    register = "register"
+    contacts = "contacts"
+    rasp = "rasp"
+    exit = "exit"
+
+
 divisions_aliases = {
     "Академическая гимназия": "AGSM",
     "Биология": "BIOL",
