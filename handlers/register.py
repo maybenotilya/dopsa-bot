@@ -1,13 +1,15 @@
 import logging
 
-from aiogram import F, Router, types
+from aiogram import Bot, F, Router, types
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 
 from consts import BotCommands, divisions_aliases, Messages
 from db.manager import DatabaseManager
+from notifier.notifier import notify
 from timetable_api import students_api
+from formatters import format_exams
 
 
 class ChoosingOccupation(StatesGroup):
@@ -57,7 +59,7 @@ async def register(message: types.Message, state: FSMContext):
 )
 async def educator_register(callback: types.CallbackQuery, state: FSMContext):
     await state.clear()
-    await callback.message.answer("Извините, но я    пока не сделял")
+    await callback.message.answer("Извините, но я пока не сделял")
     await callback.message.delete()
 
 
@@ -162,8 +164,9 @@ async def choosing_year(callback: types.CallbackQuery, state: FSMContext):
         await callback.message.edit_text(Messages.loading_message)
         year_id = students_api.get_admission_year_id(
             data["admission_years"],
-            data["admission_years"][int(callback.data)].year_name,
+            int(data["admission_years"][int(callback.data)].year_name),
         )
+        year_id = int(year_id)
         groups = students_api.get_groups(year_id)
     except Exception as e:
         logging.error(e)
@@ -190,7 +193,10 @@ async def choosing_year(callback: types.CallbackQuery, state: FSMContext):
 
 @router.callback_query(StudentRegister.choosing_group)
 async def choosing_group(
-    callback: types.CallbackQuery, state: FSMContext, db_manager: DatabaseManager
+    callback: types.CallbackQuery,
+    state: FSMContext,
+    db_manager: DatabaseManager,
+    bot: Bot,
 ):
     data = await state.get_data()
     try:
@@ -207,10 +213,20 @@ async def choosing_group(
         f"Номер вашей группы: {group_id}\nВы успешно завершили регистрацию."
     )
 
+    await db_manager.insert_group(group_id, callback.data)
+    await notify(bot, db_manager)
+
     await db_manager.upsert_user(callback.from_user.id, group_id, callback.data)
     logging.info(
         f"User id: {callback.from_user.id}, group: {group_id}, group name: {callback.data}"
     )
+
+    exams = await db_manager.get_exams()
+    if len(exams[group_id]) == 0:
+        await callback.message.answer(Messages.no_exams_message)
+    else:
+        message_text = Messages.month_exams_message + format_exams(exams[group_id])
+        await callback.message.answer(message_text)
 
     await callback.message.delete()
     await state.clear()

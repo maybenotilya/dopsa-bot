@@ -1,4 +1,6 @@
 import os
+import pickle
+import aiofiles
 
 from typing import List
 
@@ -27,11 +29,12 @@ class Group(Base):
 
 
 async def async_main(engine: AsyncEngine):
-    if not os.path.exists(os.environ["DOPSABOT_JSON_DB_PATH"]) or int(
+    if int(os.environ["DOPSABOT_DROP_ON_RESTART"]) or not os.path.exists(
         os.environ["DOPSABOT_DROP_ON_RESTART"]
     ):
-        with open(os.environ["DOPSABOT_JSON_DB_PATH"], "w") as f:
-            f.write("{}")
+        async with aiofiles.open(os.environ["DOPSABOT_EXAMS_DB_PATH"], "wb") as db:
+            await db.write(pickle.dumps({}))
+
     async with engine.begin() as conn:
         if int(os.environ["DOPSABOT_DROP_ON_RESTART"]):
             await conn.run_sync(Base.metadata.drop_all)

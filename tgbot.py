@@ -8,10 +8,13 @@ import asyncio
 import logging
 from aiogram import Dispatcher, Bot
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from handlers import start, register
 from db.models import async_main
 from middlewares.db import DbSessionMiddleware
+from middlewares.bot import BotMiddleware
+from notifier.notifier import scheduled_notify
 
 
 logging.basicConfig(level=logging.INFO)
@@ -25,7 +28,18 @@ async def main():
     await async_main(engine)
     sessionmaker = async_sessionmaker(engine, expire_on_commit=False)
     dp.update.middleware(DbSessionMiddleware(session=sessionmaker))
+    dp.update.middleware(BotMiddleware(bot))
     dp.include_routers(start.router, register.router)
+
+    scheduler = AsyncIOScheduler(timezone="Europe/Moscow")
+    scheduler.add_job(
+        scheduled_notify,
+        trigger="interval",
+        seconds=60 * 30,
+        kwargs={"bot": bot, "session": sessionmaker},
+    )
+    scheduler.start()
+
     await dp.start_polling(bot)
 
 
