@@ -15,6 +15,7 @@ from db.models import async_main
 from middlewares.db import DbSessionMiddleware
 from middlewares.bot import BotMiddleware
 from notifier.notifier import scheduled_notify
+from metrics.metrics import count_metrics
 
 
 logging.basicConfig(level=logging.INFO)
@@ -37,6 +38,12 @@ async def main():
         trigger="interval",
         seconds=60 * 30,
         kwargs={"bot": bot, "session": sessionmaker},
+    )
+    scheduler.add_job(
+        count_metrics,
+        trigger="interval",
+        seconds=12 * 60 * 60,
+        kwargs={"session": sessionmaker},
     )
     scheduler.start()
 

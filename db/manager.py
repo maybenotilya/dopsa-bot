@@ -3,7 +3,7 @@ import pickle
 import aiofiles
 
 from typing import List, Dict
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.orm import joinedload, selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -71,3 +71,8 @@ class DatabaseManager:
     async def dumb_exams(self, exams: Dict[int, List[ExamView]]):
         async with aiofiles.open(os.environ["DOPSABOT_EXAMS_DB_PATH"], "wb") as db:
             await db.write(pickle.dumps(exams))
+
+    async def get_number_groups(self):
+        session = self.session
+        query = select(func.count()).select_from(Group)
+        return (await session.execute(query)).scalar()
