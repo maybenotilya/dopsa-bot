@@ -15,7 +15,7 @@ async def notify(bot: Bot, db_manager: DatabaseManager):
     for group in groups:
         group_exams = get_group_exams(
             group_id=group.group_id,
-            from_date=date.today() - timedelta(weeks=5),
+            from_date=date.today(),
             to_date=date.today() + timedelta(days=28),
         )
         new_exams = set(group_exams) - set(exams.get(group.group_id, []))
