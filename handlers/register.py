@@ -230,3 +230,9 @@ async def choosing_group(
 
     await callback.message.delete()
     await state.clear()
+
+
+@router.message(Command(BotCommands.unregister))
+async def unregister(message: types.Message, db_manager: DatabaseManager):
+    await db_manager.remove_user(message.from_user.id)
+    await message.answer(Messages.unnregister_message)

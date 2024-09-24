@@ -3,7 +3,7 @@ import pickle
 import aiofiles
 
 from typing import List, Dict
-from sqlalchemy import select, func
+from sqlalchemy import select, delete, func
 from sqlalchemy.orm import joinedload, selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -32,6 +32,11 @@ class DatabaseManager:
         query = select(User).where(User.telegram_id == telegram_id)
         user = (await session.execute(query)).scalar_one_or_none()
         return None if user is None else map_user(user)
+
+    async def get_group_name_by_id(self, group_id: int) -> str:
+        session = self.session
+        query = select(Group.group_name).where(Group.group_id == group_id)
+        return (await session.execute(query)).scalar()
 
     async def get_exams(self) -> Dict[int, List[ExamView]]:
         async with aiofiles.open(os.environ["DOPSABOT_EXAMS_DB_PATH"], "rb") as db:
@@ -67,6 +72,11 @@ class DatabaseManager:
             user.group = group
 
         await session.commit()
+
+    async def remove_user(self, telegram_id: int):
+        session = self.session
+        query = delete(User).where(User.telegram_id == telegram_id)
+        await session.execute(query)
 
     async def dumb_exams(self, exams: Dict[int, List[ExamView]]):
         async with aiofiles.open(os.environ["DOPSABOT_EXAMS_DB_PATH"], "wb") as db:

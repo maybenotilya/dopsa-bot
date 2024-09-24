@@ -2,6 +2,7 @@ class BotCommands:
     start = "start"
     help = "help"
     register = "register"
+    unregister = "unreg"
     contacts = "contacts"
     rasp = "rasp"
     exit = "exit"
@@ -56,3 +57,4 @@ class Messages:
     no_exams_message = "У вас нет экзаменов на ближайший месяц"
     month_exams_message = "Список экзаменов на ближайший месяц:"
     new_exams_messages = "❗ У вас появились новые экзамены:"
+    unnregister_message = "Вы успешно отменили свою регистрацию"

@@ -26,10 +26,12 @@ async def rasp(message: types.Message, db_manager: DatabaseManager):
         return
 
     exams = (await db_manager.get_exams()).get(user.group_id, [])
-
+    group_name = await db_manager.get_group_name_by_id(user.group_id)
     if len(exams) == 0:
-        await message.answer(Messages.no_exams_message)
+        await message.answer(
+            f"Ваша группа: {group_name}\n\n{Messages.no_exams_message}"
+        )
         return
 
-    message_text = Messages.month_exams_message + format_exams(exams)
+    message_text = f"Ваша группа: {group_name}\n\n{Messages.month_exams_message + format_exams(exams)}"
     await message.answer(message_text)
