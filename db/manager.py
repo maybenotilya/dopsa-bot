@@ -51,7 +51,7 @@ class DatabaseManager:
             group = Group(group_id=group_id, group_name=group_name)
             session.add(group)
 
-        session.commit()
+        await session.commit()
 
     async def upsert_user(self, telegram_id: int, group_id: int, group_name: str):
         session = self.session
@@ -73,10 +73,11 @@ class DatabaseManager:
 
         await session.commit()
 
-    async def remove_user(self, telegram_id: int):
+    async def delete_user(self, telegram_id: int):
         session = self.session
         query = delete(User).where(User.telegram_id == telegram_id)
         await session.execute(query)
+        await session.commit()
 
     async def dumb_exams(self, exams: Dict[int, List[ExamView]]):
         async with aiofiles.open(os.environ["DOPSABOT_EXAMS_DB_PATH"], "wb") as db:
